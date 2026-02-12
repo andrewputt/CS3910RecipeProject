@@ -1,0 +1,3 @@
+export const API_CONFIG = {
+  SPOONACULAR_KEY: "35e2bd09057c445781e93e11e8646cbd",
+};

@@ -1,0 +1,35 @@
+import { API_CONFIG } from "./config";
+
+const API_KEY = API_CONFIG.SPOONACULAR_KEY;
+
+async function getRecipes(searchTerm: string) {
+  try {
+    const response = await fetch(
+      `https://api.spoonacular.com/recipes/complexSearch?query=${searchTerm}&number=1&apiKey=${API_KEY}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const recipeContainer = document.getElementById("recipe-container");
+
+    if (recipeContainer && data.results.length > 0) {
+      const recipe = data.results[0];
+
+      recipeContainer.innerHTML = `
+        <div class="recipe-card">
+          <h3>${recipe.title}</h3>
+          <img src="${recipe.image}" alt="${recipe.title}">
+        </div>
+      `;
+    } else if (recipeContainer) {
+      recipeContainer.innerHTML = `<p>No recipe found for "${searchTerm}"</p>`;
+    }
+  } catch (error) {
+    console.error("Connection failed:", error);
+  }
+}
+
+getRecipes("pasta");
