@@ -15,6 +15,7 @@
         padding: 20px;
         border-radius: 8px;
         margin: 20px 0;
+        max-width: 400px;
       }
       img {
         max-width: 100%;
@@ -24,16 +25,18 @@
     </style>
   </head>
   <body>
-    <h1>Recipe Search</h1>
-    <div>
-      <input
-        type="text"
-        id="search-bar"
-        placeholder="Enter an ingredient or recipe name"
-      />
-      <button id="search-button">Search</button>
+    <div id="app">
+      <h1>Recipe Search</h1>
+      <div>
+        <input
+          type="text"
+          id="search-bar"
+          placeholder="Enter an ingredient or recipe name"
+        />
+        <button id="search-button">Search</button>
+      </div>
+      <div id="recipe-container"></div>
     </div>
-    <div id="recipe-container"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
