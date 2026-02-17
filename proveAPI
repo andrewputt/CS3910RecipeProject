@@ -31,5 +31,3 @@ async function getRecipes(searchTerm: string) {
     console.error("Connection failed:", error);
   }
 }
-
-getRecipes("pasta");
