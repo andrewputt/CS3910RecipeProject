@@ -7,6 +7,15 @@
         <p>Search thousands of recipes instantly</p>
 
         <div class="search-bar">
+          <button
+            :class="['season-toggle', { active: isInSeasonMode }]"
+            @click="
+              isInSeasonMode = !isInSeasonMode;
+              searchRecipes();
+            "
+          >
+            {{ isInSeasonMode ? "Season Mode: ON" : "❄️ Filter by Season" }}
+          </button>
           <input
             v-model="searchQuery"
             @keyup.enter="searchRecipes"
@@ -63,6 +72,8 @@ export default {
       recipes: [],
       selectedRecipe: null,
       loading: false,
+      isInSeasonMode: false,
+      februaryIngredients: ["kale", "lemon", "cabbage"],
     };
   },
   mounted() {
@@ -71,38 +82,72 @@ export default {
   methods: {
     async fetchPopularRecipes() {
       this.loading = true;
-      const response = await fetch(
-        `https://api.spoonacular.com/recipes/random?number=12&apiKey=${
-          import.meta.env.VITE_SPOONACULAR_API_KEY
-        }`
-      );
-      const data = await response.json();
-      this.recipes = data.recipes;
-      this.loading = false;
+      try {
+        const response = await fetch(
+          `https://api.spoonacular.com/recipes/random?number=12&apiKey=${
+            import.meta.env.VITE_SPOONACULAR_API_KEY
+          }`
+        );
+        const data = await response.json();
+        this.recipes = data.recipes || [];
+      } catch (e) {
+        console.error("Initial fetch failed", e);
+      } finally {
+        this.loading = false;
+      }
     },
 
     async searchRecipes() {
-      if (!this.searchQuery) return;
+      if (!this.searchQuery && !this.isInSeasonMode) return;
       this.loading = true;
 
-      const response = await fetch(
-        `https://api.spoonacular.com/recipes/complexSearch?query=${
-          this.searchQuery
-        }&number=12&apiKey=${import.meta.env.VITE_SPOONACULAR_API_KEY}`
-      );
-      const data = await response.json();
-      this.recipes = data.results;
-      this.loading = false;
+      try {
+        let query = this.searchQuery;
+
+        if (this.isInSeasonMode) {
+          const seasonalFilter = this.februaryIngredients.join(" ");
+          query = `${this.searchQuery} ${seasonalFilter}`.trim();
+        }
+
+        const url = `https://api.spoonacular.com/recipes/complexSearch?query=${query}&number=12&apiKey=${
+          import.meta.env.VITE_SPOONACULAR_API_KEY
+        }`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.results.length === 0 && this.isInSeasonMode) {
+          console.warn("Search too specific, trying broader seasonal match...");
+
+          const fallbackUrl = `https://api.spoonacular.com/recipes/complexSearch?query=${
+            this.searchQuery
+          } ${this.februaryIngredients[0]}&number=12&apiKey=${
+            import.meta.env.VITE_SPOONACULAR_API_KEY
+          }`;
+          const fallbackRes = await fetch(fallbackUrl);
+          const fallbackData = await fallbackRes.json();
+          this.recipes = fallbackData.results || [];
+        } else {
+          this.recipes = data.results || [];
+        }
+      } catch (error) {
+        console.error("Search failed:", error);
+      } finally {
+        this.loading = false;
+      }
     },
 
     async getRecipeDetails(id) {
-      const response = await fetch(
-        `https://api.spoonacular.com/recipes/${id}/information?apiKey=${
-          import.meta.env.VITE_SPOONACULAR_API_KEY
-        }`
-      );
-      const data = await response.json();
-      this.selectedRecipe = data;
+      try {
+        const response = await fetch(
+          `https://api.spoonacular.com/recipes/${id}/information?apiKey=${
+            import.meta.env.VITE_SPOONACULAR_API_KEY
+          }`
+        );
+        this.selectedRecipe = await response.json();
+      } catch (e) {
+        console.error("Detail fetch failed", e);
+      }
     },
   },
 };
