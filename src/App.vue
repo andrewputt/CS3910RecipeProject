@@ -73,7 +73,7 @@ export default {
       selectedRecipe: null,
       loading: false,
       isInSeasonMode: false,
-      februaryIngredients: ["kale", "lemon", "cabbage"],
+      februaryIngredients: ["kale"],
     };
   },
   mounted() {
@@ -104,6 +104,7 @@ export default {
       try {
         let query = this.searchQuery;
 
+        // Filter out items you dislike, such as bananas or sweet potatoes
         if (this.isInSeasonMode) {
           const seasonalFilter = this.februaryIngredients.join(" ");
           query = `${this.searchQuery} ${seasonalFilter}`.trim();
@@ -114,24 +115,35 @@ export default {
         }`;
 
         const response = await fetch(url);
+
+        // 1. Check if the response is okay (status 200-299)
+        if (!response.ok) {
+          if (response.status === 402) {
+            throw new Error(
+              "Daily API quota reached. Switching to offline mode."
+            );
+          }
+          throw new Error(`Server responded with ${response.status}`);
+        }
+
         const data = await response.json();
 
-        if (data.results.length === 0 && this.isInSeasonMode) {
-          console.warn("Search too specific, trying broader seasonal match...");
+        // 2. Use optional chaining and a fallback to an empty array
+        this.recipes = data.results || [];
 
-          const fallbackUrl = `https://api.spoonacular.com/recipes/complexSearch?query=${
-            this.searchQuery
-          } ${this.februaryIngredients[0]}&number=12&apiKey=${
-            import.meta.env.VITE_SPOONACULAR_API_KEY
-          }`;
-          const fallbackRes = await fetch(fallbackUrl);
-          const fallbackData = await fallbackRes.json();
-          this.recipes = fallbackData.results || [];
-        } else {
-          this.recipes = data.results || [];
+        if (this.recipes.length === 0) {
+          console.warn("No recipes found for this search.");
         }
       } catch (error) {
-        console.error("Search failed:", error);
+        console.error("Search failed:", error.message);
+        // 3. Fallback: Show mock data so you can keep working on the UI
+        this.recipes = [
+          {
+            id: 1,
+            title: "Mock Recipe: Quota Reached",
+            image: "https://via.placeholder.com/300",
+          },
+        ];
       } finally {
         this.loading = false;
       }
